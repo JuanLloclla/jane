@@ -26,3 +26,28 @@ class Jane:
 
     def reiniciar(self) -> None:
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    def responder_stream(self, texto: str):
+        self.messages.append({"role": "user", "content": texto})
+        partes: list[str] = []
+        try:
+            stream = self.client.chat.completions.create(
+                model=MODEL,
+                messages=self.messages,
+                stream=True,
+            )
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    partes.append(delta)
+                    yield delta
+        except Exception:
+            if not partes:
+                self.messages.pop()  # no dejar un mensaje user sin respuesta
+            raise
+        finally:
+            # Guarda la respuesta completa (o parcial si se cortó)
+            if partes:
+                self.messages.append({"role": "assistant", "content": "".join(partes)})
