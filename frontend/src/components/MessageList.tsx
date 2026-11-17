@@ -9,7 +9,11 @@ interface Props {
 export default function MessageList({ messages, loading }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Scroll automático al último mensaje
+  // 1) Nuevo: ¿estamos esperando el primer trozo de la respuesta?
+  const last = messages[messages.length - 1];
+  const waiting = loading && (!last || last.content === "");
+
+  // Scroll automático al último mensaje (sin cambios)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
@@ -23,24 +27,30 @@ export default function MessageList({ messages, loading }: Props) {
           </p>
         )}
 
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2 ${
-                m.role === "user"
-                  ? "bg-brand-2 text-brand-5"
-                  : "border border-brand-4 bg-white text-brand-1"
-              }`}
-            >
-              {m.content}
-            </div>
-          </div>
-        ))}
+        {messages.map((m, i) => {
+          // 2) Nuevo: no pintar burbujas vacías
+          if (!m.content) return null;
 
-        {loading && (
+          return (
+            <div
+              key={i}
+              className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2 ${
+                  m.role === "user"
+                    ? "bg-brand-2 text-brand-5"
+                    : "border border-brand-4 bg-white text-brand-1"
+                }`}
+              >
+                {m.content}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 3) Cambiado: `loading` -> `waiting` */}
+        {waiting && (
           <div className="flex justify-start">
             <div className="rounded-2xl border border-brand-4 bg-white px-4 py-2 text-brand-3">
               Jane está escribiendo...
