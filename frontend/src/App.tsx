@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getHistory, newChat, sendMessage } from "./api/chat";
+import { getHistory, newChat, streamMessage } from "./api/chat";
 import MessageInput from "./components/MessageInput";
 import MessageList from "./components/MessageList";
 import type { Message } from "./types";
@@ -17,19 +17,33 @@ export default function App() {
   }, []);
 
   const handleSend = async (text: string) => {
-    setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
-    setLoading(true);
+  setError(null);
+  setMessages((prev) => [
+    ...prev,
+    { role: "user", content: text },
+    { role: "assistant", content: "" }, // burbuja vacía que se irá llenando
+  ]);
+  setLoading(true);
 
-    try {
-      const reply = await sendMessage(text);
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-    } catch {
-      setError("Jane no pudo responder. Revisa la terminal del backend.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    await streamMessage(text, (chunk) => {
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        copy[copy.length - 1] = { ...last, content: last.content + chunk };
+        return copy;
+      });
+    });
+  } catch {
+    setError("Jane no pudo responder. Revisa la terminal del backend.");
+    // Quita la burbuja vacía si no llegó nada
+    setMessages((prev) =>
+      prev[prev.length - 1]?.content === "" ? prev.slice(0, -1) : prev,
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleNewChat = async () => {
     try {
