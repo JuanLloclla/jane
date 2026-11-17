@@ -1,2 +1,11 @@
+# Entornos virtuales
 .venv/
 .env
+
+!.env.example
+
+# Python
+__pycache__/
+
+# Editor y sistema
+.vscode/
